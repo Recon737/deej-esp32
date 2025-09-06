@@ -14,60 +14,86 @@ ESP32Encoder enc1, enc2, enc3, enc4;
 #define ENC4_A 14
 #define ENC4_B 27
 
+#define CLAMP_LOWER 0                        // deej lower voluem bound
+#define CLAMP_UPPER 1023                     // deej upper volume bound
+#define DETENTS 20                           // detents on encoder
+
+#define VOLUME_START (CLAMP_UPPER / 2)       // volume starting value
+#define VOLUME_UNIT (CLAMP_UPPER / DETENTS)  // volume increment
+
 long pos1 = 0;
-long pos2 = 0;
-long pos3 = 0;
-long pos4 = 0;
+
+bool direction1 = true; //true = CW, false = CCW
+long prev_raw1 = 0;
+
+long volume1 = 512;     // starting volume
+
+long calcVolume(long volume, bool direction) {
+  if (direction){
+    volume = volume + VOLUME_UNIT;
+    if (volume > CLAMP_UPPER){
+      volume = CLAMP_UPPER;
+    }
+  }
+  else {
+    volume = volume - VOLUME_UNIT;
+    if (volume < CLAMP_LOWER){
+      volume = CLAMP_LOWER;
+    }
+  }
+  return volume;
+}
+
+bool getDirection(long raw, long prev_raw) {
+  bool direction = true;
+  if (raw > prev_raw) {
+    direction = true;
+  }
+  else {
+    direction = false;
+  }
+  return direction;
+}
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  //Serial.println("ESP32 4 Rotary Encoders Test");
+  Serial.println("ESP32 4 Rotary Encoders Test");
 
   // Enable internal pull-ups
   ESP32Encoder::useInternalWeakPullResistors = puType::up;
 
   // Attach encoders in half-quad mode (2 counts per detent internally)
   enc1.attachHalfQuad(ENC1_A, ENC1_B);
-  enc2.attachHalfQuad(ENC2_A, ENC2_B);
-  enc3.attachHalfQuad(ENC3_A, ENC3_B);
-  enc4.attachHalfQuad(ENC4_A, ENC4_B);
 
   // Reset counts
   enc1.clearCount();
-  enc2.clearCount();
-  enc3.clearCount();
-  enc4.clearCount();
 }
 
 void loop() {
   // Read raw counts
   long raw1 = enc1.getCount();
-  long raw2 = enc2.getCount();
-  long raw3 = enc3.getCount();
-  long raw4 = enc4.getCount();
-
-  // Optional: 1 count per detent
-  long detent1 = raw1 / 2;
-  long detent2 = raw2 / 2;
-  long detent3 = raw3 / 2;
-  long detent4 = raw4 / 2;
+  // Get directions
+  bool direction1 = getDirection(raw1, prev_raw1);
 
   // Only print if changed
-  if (detent1 != pos1 || detent2 != pos2 || detent3 != pos3 || detent4 != pos4) {
-    pos1 = detent1;
-    pos2 = detent2;
-    pos3 = detent3;
-    pos4 = detent4;
+  if (raw1 != prev_raw1) {
 
-    Serial.print(pos1);
-    Serial.print(""); 
-    Serial.print(pos2);
-    Serial.print("|"); 
-    Serial.print(pos3);
+    volume1 = calcVolume(volume1, direction1);
+
+    if (direction1) {
+      Serial.print(" -> ");
+    }
+    else {
+      Serial.print(" <- ");
+    }
     Serial.print("|");
-    Serial.println(pos4);
+    Serial.println(volume1);
+      
+    // Reset prev raw values
+    prev_raw1 = raw1;
   }
 
   delay(50); // small delay to reduce Serial spam
 }
+

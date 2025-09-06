@@ -1,0 +1,73 @@
+#include <Arduino.h>
+#include <ESP32Encoder.h>
+
+// Create encoder objects
+ESP32Encoder enc1, enc2, enc3, enc4;
+
+// Encoder pins (CLK, DT)
+#define ENC1_A 35
+#define ENC1_B 34
+#define ENC2_A 33
+#define ENC2_B 32
+#define ENC3_A 25
+#define ENC3_B 26
+#define ENC4_A 14
+#define ENC4_B 27
+
+long pos1 = 0;
+long pos2 = 0;
+long pos3 = 0;
+long pos4 = 0;
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+  //Serial.println("ESP32 4 Rotary Encoders Test");
+
+  // Enable internal pull-ups
+  ESP32Encoder::useInternalWeakPullResistors = puType::up;
+
+  // Attach encoders in half-quad mode (2 counts per detent internally)
+  enc1.attachHalfQuad(ENC1_A, ENC1_B);
+  enc2.attachHalfQuad(ENC2_A, ENC2_B);
+  enc3.attachHalfQuad(ENC3_A, ENC3_B);
+  enc4.attachHalfQuad(ENC4_A, ENC4_B);
+
+  // Reset counts
+  enc1.clearCount();
+  enc2.clearCount();
+  enc3.clearCount();
+  enc4.clearCount();
+}
+
+void loop() {
+  // Read raw counts
+  long raw1 = enc1.getCount();
+  long raw2 = enc2.getCount();
+  long raw3 = enc3.getCount();
+  long raw4 = enc4.getCount();
+
+  // Optional: 1 count per detent
+  long detent1 = raw1 / 2;
+  long detent2 = raw2 / 2;
+  long detent3 = raw3 / 2;
+  long detent4 = raw4 / 2;
+
+  // Only print if changed
+  if (detent1 != pos1 || detent2 != pos2 || detent3 != pos3 || detent4 != pos4) {
+    pos1 = detent1;
+    pos2 = detent2;
+    pos3 = detent3;
+    pos4 = detent4;
+
+    Serial.print(pos1);
+    Serial.print("|"); 
+    Serial.print(pos2);
+    Serial.print("|"); 
+    Serial.print(pos3);
+    Serial.print("|");
+    Serial.println(pos4);
+  }
+
+  delay(50); // small delay to reduce Serial spam
+}
