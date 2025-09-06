@@ -22,7 +22,7 @@ long pos4 = 0;
 void setup() {
   Serial.begin(115200);
   delay(1000);
-  Serial.println("ESP32 4 Rotary Encoders Test");
+  //Serial.println("ESP32 4 Rotary Encoders Test");
 
   // Enable internal pull-ups
   ESP32Encoder::useInternalWeakPullResistors = puType::up;
@@ -60,10 +60,13 @@ void loop() {
     pos3 = detent3;
     pos4 = detent4;
 
-    Serial.print("Enc1: "); Serial.print(pos1);
-    Serial.print(" | Enc2: "); Serial.print(pos2);
-    Serial.print(" | Enc3: "); Serial.print(pos3);
-    Serial.print(" | Enc4: "); Serial.println(pos4);
+    Serial.print(pos1);
+    Serial.print(""); 
+    Serial.print(pos2);
+    Serial.print("|"); 
+    Serial.print(pos3);
+    Serial.print("|");
+    Serial.println(pos4);
   }
 
   delay(50); // small delay to reduce Serial spam
