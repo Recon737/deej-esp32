@@ -1,63 +1,70 @@
-#include <WiFi.h>
-#include <WiFiUdp.h>
+#include <Arduino.h>
+#include <ESP32Encoder.h>
 
-#include "configuration.h"
+// Create encoder objects
+ESP32Encoder enc1, enc2, enc3, enc4;
 
-#define NUM_SLIDERS 5
+// Encoder pins (CLK, DT)
+#define ENC1_A 35
+#define ENC1_B 34
+#define ENC2_A 33
+#define ENC2_B 32
+#define ENC3_A 25
+#define ENC3_B 26
+#define ENC4_A 14
+#define ENC4_B 27
 
-WiFiUDP Udp;
-IPAddress destIp;
-
-byte pins[6] = {36, 39, 34, 35, 32, 33};
+long pos1 = 0;
+long pos2 = 0;
+long pos3 = 0;
+long pos4 = 0;
 
 void setup() {
-    pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
+  delay(1000);
+  Serial.println("ESP32 4 Rotary Encoders Test");
 
-    destIp = IPAddress();
-    destIp.fromString(DEST_IP);
+  // Enable internal pull-ups
+  ESP32Encoder::useInternalWeakPullResistors = puType::up;
 
-    Serial.begin(115200);
-    Serial.println();
-    Serial.println("Configuring access point...");
+  // Attach encoders in half-quad mode (2 counts per detent internally)
+  enc1.attachHalfQuad(ENC1_A, ENC1_B);
+  enc2.attachHalfQuad(ENC2_A, ENC2_B);
+  enc3.attachHalfQuad(ENC3_A, ENC3_B);
+  enc4.attachHalfQuad(ENC4_A, ENC4_B);
 
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect(true);
-    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE);
-    WiFi.setHostname(HOSTNAME);
-    WiFi.begin(SSID, PASSWORD);
-
-    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
-    }
-
-    Serial.println("Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-
-    analogReadResolution(10);
+  // Reset counts
+  enc1.clearCount();
+  enc2.clearCount();
+  enc3.clearCount();
+  enc4.clearCount();
 }
 
 void loop() {
-    uint i;
-    uint readings[5];
-    for (i = 0; i < NUM_SLIDERS; i++) {
-        readings[i] = analogRead(pins[i]);
-    }
-    String builtString = String("");
+  // Read raw counts
+  long raw1 = enc1.getCount();
+  long raw2 = enc2.getCount();
+  long raw3 = enc3.getCount();
+  long raw4 = enc4.getCount();
 
-    for (int i = 0; i < NUM_SLIDERS; i++) {
-        builtString += String((int)readings[i]);
+  // Optional: 1 count per detent
+  long detent1 = raw1 / 2;
+  long detent2 = raw2 / 2;
+  long detent3 = raw3 / 2;
+  long detent4 = raw4 / 2;
 
-        if (i < NUM_SLIDERS - 1) {
-            builtString += String("|");
-        }
-    }
-    Serial.println(builtString + "\n");
+  // Only print if changed
+  if (detent1 != pos1 || detent2 != pos2 || detent3 != pos3 || detent4 != pos4) {
+    pos1 = detent1;
+    pos2 = detent2;
+    pos3 = detent3;
+    pos4 = detent4;
 
-    Udp.beginPacket(destIp, 16990);
-    Udp.write((uint8_t *) builtString.c_str(), builtString.length());
-    Udp.endPacket();
-    delay(10);
+    Serial.print("Enc1: "); Serial.print(pos1);
+    Serial.print(" | Enc2: "); Serial.print(pos2);
+    Serial.print(" | Enc3: "); Serial.print(pos3);
+    Serial.print(" | Enc4: "); Serial.println(pos4);
+  }
+
+  delay(50); // small delay to reduce Serial spam
 }
